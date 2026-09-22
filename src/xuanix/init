@@ -1,0 +1,57 @@
+#!/bin/sh
+trap 'poweroff -f' SIGTERM SIGINT
+
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t devtmpfs none /dev 2>/dev/null
+mkdir -p /dev/pts
+mount -t devpts devpts /dev/pts
+
+hostname Xuanix
+/bin/xuanix-logo
+echo ""
+echo "Welcome to Xuanix 0.1 beta"
+echo ""
+
+if ! grep -q '^[^:]*:[^:]*:1[0-9][0-9][0-9]' /etc/passwd; then
+    echo "register user"
+    echo ""
+    while true; do
+        echo -n "user name: "
+        read username
+        [ -z "$username" ] && continue
+        grep -q "^${username}:" /etc/passwd && { echo "user exists"; continue; }
+        break
+    done
+
+    while true; do
+        stty -echo
+        echo -n "password: "
+        read password
+        echo ""
+        echo -n "confirm: "
+        read password2
+        echo ""
+        stty echo
+        [ "$password" != "$password2" ] && { echo "mismatch"; continue; }
+        [ -z "$password" ] && { echo "empty"; continue; }
+        break
+    done
+
+    mkdir -p /home/$username
+    adduser -D -h /home/$username -s /bin/sh $username
+    echo "$username:$password" | chpasswd
+    grep -q '^wheel:' /etc/group || echo 'wheel:x:10:' >> /etc/group
+    adduser $username wheel
+
+    echo ""
+    echo "successful"
+    echo ""
+fi
+
+while true; do
+    setsid sh -c 'exec getty -l login 115200 ttyS0'
+    echo ""
+    echo "Session ended. Restarting login..."
+    sleep 1
+done
