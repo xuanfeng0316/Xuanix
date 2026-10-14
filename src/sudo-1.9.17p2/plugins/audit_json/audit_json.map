@@ -1,6 +1,0 @@
-{
-	global:
-		audit_json;
-	local:
-		*;
-};
